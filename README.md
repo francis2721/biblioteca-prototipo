@@ -1,1 +1,2 @@
-# Biblioteca — Prototipo de Interfaz Prototipo de interfaz para el Sistema de Organización de una Biblioteca, trabajo final del curso de Sistemas de Representación de Información. Incluye 4 pantallas: catálogo de libros, registro de préstamo, devoluciones y panel general. Autor: Francis De La Rosa
+# Biblioteca — Prototipo de Interfaz Prototipo de interfaz para el Sistema de Organización de una Biblioteca, trabajo final del curso de Sistemas de Representación de Información. Incluye 4 pantallas: catálogo de libros, registro de préstamo, devoluciones y panel general. 
+Autores: Grupo 1
