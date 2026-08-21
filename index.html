@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sistema de Biblioteca — Prototipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12212b;
+    --paper:#eef4f5;
+    --paper-deep:#dfe9eb;
+    --teal:#00707d;
+    --teal-deep:#014048;
+    --navy:#0b2b3c;
+    --red:#c0392b;
+    --card:#ffffff;
+    --line:rgba(11,43,60,0.12);
+    --ok:#1f8a5f;
+    --warn:#c0392b;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{ display:grid; grid-template-columns:230px 1fr; min-height:100vh; }
+  .drawer{
+    background:var(--navy);
+    color:#eaf3f4;
+    padding:26px 0 0 0;
+    display:flex; flex-direction:column; position:relative;
+  }
+  .drawer::after{
+    content:""; position:absolute; top:0; right:0; bottom:0; width:6px;
+    background:linear-gradient(180deg,var(--teal),var(--red));
+  }
+  .brand{ padding:0 22px 22px 22px; border-bottom:1px solid rgba(234,243,244,0.15); margin-bottom:10px; display:flex; gap:10px; align-items:center; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:7px; background:linear-gradient(135deg,var(--teal),var(--teal-deep));
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:15px; color:#fff; flex-shrink:0;
+  }
+  .brand h1{ font-family:'Fraunces',serif; font-weight:600; font-size:18px; line-height:1.2; margin:0; }
+  .brand .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:#7fc4c9; display:block; }
+  .tabs{ padding:6px 12px; display:flex; flex-direction:column; gap:3px; }
+  .tab{
+    all:unset; cursor:pointer; display:flex; align-items:baseline; gap:10px; padding:11px 12px;
+    border-radius:var(--radius); font-size:14px; color:rgba(234,243,244,0.72); transition:background .15s, color .15s;
+  }
+  .tab .idx{ font-family:'JetBrains Mono',monospace; font-size:11px; opacity:.7;}
+  .tab:hover{ background:rgba(234,243,244,0.07); color:#eaf3f4; }
+  .tab.active{ background:#eaf3f4; color:var(--navy); font-weight:600; }
+  .tab.active .idx{ color:var(--red); opacity:1; }
+  .drawer-foot{ margin-top:auto; padding:16px 22px 22px 22px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:rgba(234,243,244,0.4); border-top:1px solid rgba(234,243,244,0.12); }
+
+  main{ padding:38px 46px 60px 46px; max-width:1080px; }
+  .screen{ display:none; animation:fade .25s ease; }
+  .screen.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .screen-head{ margin-bottom:24px; display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
+  .screen-head .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--red); display:block; margin-bottom:8px; }
+  .screen-head h2{ font-family:'Fraunces',serif; font-weight:700; font-size:32px; margin:0 0 6px 0; }
+  .screen-head p{ margin:0; color:rgba(18,33,43,0.6); font-size:14px; max-width:52ch; }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); }
+
+  /* ---- Catálogo ---- */
+  .toolbar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .toolbar input[type=text]{ flex:1; min-width:200px; padding:10px 14px; border:1px solid var(--line); border-radius:var(--radius); font-family:'Inter'; font-size:14px; background:var(--card); }
+  .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{ all:unset; cursor:pointer; padding:9px 14px; border:1px solid var(--line); border-radius:20px; font-size:12.5px; color:rgba(18,33,43,0.65); background:var(--card); }
+  .chip.active{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .stat-strip{ display:flex; gap:14px; margin-bottom:18px; }
+  .stat-pill{ flex:1; padding:14px 16px; }
+  .stat-pill .num{ font-family:'Fraunces',serif; font-weight:700; font-size:22px; }
+  .stat-pill .lbl{ font-size:11.5px; color:rgba(18,33,43,0.55); margin-top:2px; }
+  .book-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .book-card{ padding:16px; display:flex; flex-direction:column; gap:8px; }
+  .book-cover{ height:76px; border-radius:2px; background:linear-gradient(135deg,var(--teal),var(--navy)); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; color:#fff; font-size:22px; font-weight:700; }
+  .book-card h4{ margin:0; font-size:14.5px; line-height:1.3; }
+  .book-card .meta{ font-size:12px; color:rgba(18,33,43,0.55); }
+  .book-card .location{ font-size:11px; color:var(--teal-deep); font-family:'JetBrains Mono',monospace; }
+  .genre-tag{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--teal-deep); background:rgba(0,112,125,0.08); padding:2px 8px; border-radius:10px; display:inline-block; width:fit-content; }
+  .book-card .row-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:6px; }
+  .badge{ display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge.disp{ background:rgba(31,138,95,0.13); color:var(--ok); }
+  .badge.prest{ background:rgba(192,57,43,0.12); color:var(--warn); }
+
+  /* ---- Préstamo (sin cambios) ---- */
+  .grid2{ display:grid; grid-template-columns:1.1fr .9fr; gap:24px; align-items:start; }
+  .form-card{ padding:26px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:rgba(18,33,43,0.55); margin-bottom:6px; }
+  .field input{ width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius); font-family:'Inter'; font-size:14px; background:#fff; }
+  .status-card{ padding:22px; }
+  .status-card h3{ font-family:'Fraunces',serif; font-size:16px; margin:0 0 14px 0; }
+  .check-row{ display:flex; align-items:center; gap:10px; padding:9px 0; font-size:13.5px; border-bottom:1px solid var(--line); }
+  .check-row:last-child{ border-bottom:none; }
+  .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot.ok{ background:var(--ok); }
+  .btn{ all:unset; cursor:pointer; display:inline-block; padding:11px 20px; border-radius:var(--radius); background:var(--teal-deep); color:#fff; font-size:13.5px; font-weight:600; letter-spacing:.01em; transition:background .15s; }
+  .btn:hover{ background:var(--navy); }
+
+  /* ---- Devoluciones (ampliado) ---- */
+  .loan-table{ width:100%; border-collapse:collapse; }
+  .loan-table th{ text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:rgba(18,33,43,0.5); padding:11px 16px; border-bottom:1px solid var(--line); }
+  .loan-table td{ padding:13px 16px; border-bottom:1px solid var(--line); font-size:13.5px; vertical-align:middle; }
+  .loan-table tr:last-child td{ border-bottom:none; }
+  .loan-title{ font-weight:600; }
+  .loan-sub{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:rgba(18,33,43,0.5); margin-top:2px; }
+  .due.late{ color:var(--warn); font-weight:600; }
+  .due.ontime{ color:rgba(18,33,43,0.55); }
+  .btn-outline{ all:unset; cursor:pointer; padding:7px 13px; border:1px solid var(--teal-deep); color:var(--teal-deep); font-size:12px; font-weight:600; border-radius:var(--radius); }
+  .btn-outline:hover{ background:var(--teal-deep); color:#fff; }
+
+  /* ---- Panel general (mejorado) ---- */
+  .kpi-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+  .kpi{ padding:18px 20px; }
+  .kpi .num{ font-family:'Fraunces',serif; font-size:30px; font-weight:700; line-height:1; }
+  .kpi .lbl{ font-size:11.5px; color:rgba(18,33,43,0.55); margin-top:6px; }
+  .kpi .trend{ font-size:11px; margin-top:4px; }
+  .kpi .trend.up{ color:var(--ok); } .kpi .trend.down{ color:var(--warn); }
+  .kpi.accent .num{ color:var(--red); }
+  .panel-grid{ display:grid; grid-template-columns:1.3fr .9fr; gap:16px; }
+  .bars{ padding:22px; }
+  .bars h3, .donut-card h3{ font-family:'Fraunces',serif; font-size:15px; margin:0 0 16px 0; }
+  .bar-row{ display:grid; grid-template-columns:140px 1fr 30px; align-items:center; gap:10px; margin-bottom:11px; font-size:12.5px; }
+  .bar-track{ height:8px; background:var(--paper-deep); border-radius:4px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--teal); border-radius:4px; }
+  .donut-card{ padding:22px; display:flex; flex-direction:column; align-items:center; }
+  .donut{
+    width:150px; height:150px; border-radius:50%;
+    background:conic-gradient(var(--ok) 0% 82%, var(--red) 82% 94%, var(--paper-deep) 94% 100%);
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px; position:relative;
+  }
+  .donut::before{ content:""; width:96px; height:96px; border-radius:50%; background:var(--card); position:absolute; }
+  .donut-label{ position:relative; font-family:'Fraunces',serif; font-size:22px; font-weight:700; z-index:1; }
+  .legend{ font-size:12px; width:100%; }
+  .legend-row{ display:flex; align-items:center; gap:8px; padding:5px 0; }
+  .legend-dot{ width:8px; height:8px; border-radius:50%; }
+
+  /* ---- Gráficas adicionales del panel ---- */
+  .panel-grid-2{ display:grid; grid-template-columns:1.3fr .9fr; gap:16px; margin-top:16px; }
+  .trend-card{ padding:22px; }
+  .trend-card h3{ font-family:'Fraunces',serif; font-size:15px; margin:0 0 4px 0; }
+  .trend-sub{ font-size:11.5px; color:rgba(18,33,43,0.5); margin-bottom:14px; }
+  .trend-svg{ width:100%; height:130px; display:block; }
+  .cols-card{ padding:22px; }
+  .cols-card h3{ font-family:'Fraunces',serif; font-size:15px; margin:0 0 16px 0; }
+  .cols-wrap{ display:flex; align-items:flex-end; gap:12px; height:140px; }
+  .col-item{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .col-bar{ width:100%; max-width:34px; border-radius:3px 3px 0 0; background:var(--teal); position:relative; }
+  .col-bar .col-val{ position:absolute; top:-18px; left:0; right:0; text-align:center; font-size:11px; font-weight:600; color:var(--navy); }
+  .col-lbl{ font-size:10.5px; color:rgba(18,33,43,0.55); margin-top:8px; text-align:center; line-height:1.25; }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="drawer">
+    <div class="brand">
+      <div class="brand-mark">B</div>
+      <div><span class="eyebrow">Sistema ITLA</span><h1>Biblioteca<br>Central</h1></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-screen="catalogo"><span class="idx">01</span> Catálogo</button>
+      <button class="tab" data-screen="prestamo"><span class="idx">02</span> Registrar préstamo</button>
+      <button class="tab" data-screen="devolucion"><span class="idx">03</span> Devoluciones</button>
+      <button class="tab" data-screen="panel"><span class="idx">04</span> Panel general</button>
+    </div>
+    <div class="drawer-foot">Prototipo · Trabajo Final<br>Sistemas de Representación</div>
+  </nav>
+
+  <main>
+
+    <!-- SCREEN 1: Catálogo (ampliado) -->
+    <section class="screen active" id="screen-catalogo">
+      <div class="screen-head">
+        <div>
+          <span class="eyebrow">Entidad: Libro</span>
+          <h2>Catálogo de libros</h2>
+          <p>Consulta del inventario con filtros por género y disponibilidad en tiempo real.</p>
+        </div>
+      </div>
+
+      <div class="stat-strip">
+        <div class="card stat-pill"><div class="num">13</div><div class="lbl">Títulos totales</div></div>
+        <div class="card stat-pill"><div class="num">9</div><div class="lbl">Disponibles</div></div>
+        <div class="card stat-pill"><div class="num">4</div><div class="lbl">Prestados</div></div>
+        <div class="card stat-pill"><div class="num">8</div><div class="lbl">Géneros distintos</div></div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="book-search" placeholder="Buscar por título, autor o ISBN…">
+      </div>
+      <div class="chip-group" id="book-filters" style="margin-bottom:16px;">
+        <button class="chip active" data-filter="all">Todos</button>
+        <button class="chip" data-filter="status:disponible">Disponibles</button>
+        <button class="chip" data-filter="status:prestado">Prestados</button>
+        <button class="chip" data-filter="genre:Realismo mágico">Realismo mágico</button>
+        <button class="chip" data-filter="genre:Ficción histórica">Ficción histórica</button>
+        <button class="chip" data-filter="genre:Novela política">Novela política</button>
+        <button class="chip" data-filter="genre:Poesía">Poesía</button>
+        <button class="chip" data-filter="genre:Fantasía">Fantasía</button>
+        <button class="chip" data-filter="genre:Ensayo">Ensayo</button>
+      </div>
+
+      <div class="book-grid" id="book-grid">
+        <div class="card book-card" data-genre="Realismo mágico" data-status="disponible" data-search="cien años de soledad g. garcía márquez 978-0307474728"><div class="book-cover">CS</div><span class="genre-tag">Realismo mágico</span><h4>Cien años de soledad</h4><div class="meta">G. García Márquez · 978-0307474728</div><div class="location">Ala A · Piso 1</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Ficción histórica" data-status="prestado" data-search="la casa de los espíritus isabel allende 978-8401337973"><div class="book-cover">CE</div><span class="genre-tag">Ficción histórica</span><h4>La casa de los espíritus</h4><div class="meta">Isabel Allende · 978-8401337973</div><div class="location">Ala A · Piso 1</div><div class="row-bottom"><span class="badge prest">Prestado</span></div></div>
+        <div class="card book-card" data-genre="Novela política" data-status="disponible" data-search="el otoño del patriarca g. garcía márquez 978-8497592207"><div class="book-cover">OP</div><span class="genre-tag">Novela política</span><h4>El otoño del patriarca</h4><div class="meta">G. García Márquez · 978-8497592207</div><div class="location">Ala B · Piso 2</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Romance" data-status="prestado" data-search="como agua para chocolate laura esquivel 978-0385420174"><div class="book-cover">AC</div><span class="genre-tag">Romance</span><h4>Como agua para chocolate</h4><div class="meta">Laura Esquivel · 978-0385420174</div><div class="location">Ala C · Piso 1</div><div class="row-bottom"><span class="badge prest">Prestado</span></div></div>
+        <div class="card book-card" data-genre="Ficción" data-status="disponible" data-search="pedro páramo juan rulfo 978-0802133908"><div class="book-cover">PP</div><span class="genre-tag">Ficción</span><h4>Pedro Páramo</h4><div class="meta">Juan Rulfo · 978-0802133908</div><div class="location">Ala A · Piso 2</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Ficción" data-status="disponible" data-search="el túnel ernesto sabato 978-8420633208"><div class="book-cover">ET</div><span class="genre-tag">Ficción</span><h4>El túnel</h4><div class="meta">Ernesto Sabato · 978-8420633208</div><div class="location">Ala A · Piso 2</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Realismo mágico" data-status="disponible" data-search="rayuela julio cortázar 978-8437604572"><div class="book-cover">RA</div><span class="genre-tag">Realismo mágico</span><h4>Rayuela</h4><div class="meta">Julio Cortázar · 978-8437604572</div><div class="location">Ala A · Piso 1</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Novela política" data-status="prestado" data-search="conversación en la catedral mario vargas llosa 978-8420471861"><div class="book-cover">CC</div><span class="genre-tag">Novela política</span><h4>Conversación en la Catedral</h4><div class="meta">Mario Vargas Llosa · 978-8420471861</div><div class="location">Ala B · Piso 2</div><div class="row-bottom"><span class="badge prest">Prestado</span></div></div>
+        <div class="card book-card" data-genre="Ficción histórica" data-status="disponible" data-search="la fiesta del chivo mario vargas llosa 978-8420471472"><div class="book-cover">FC</div><span class="genre-tag">Ficción histórica</span><h4>La fiesta del chivo</h4><div class="meta">Mario Vargas Llosa · 978-8420471472</div><div class="location">Ala B · Piso 2</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Poesía" data-status="disponible" data-search="veinte poemas de amor y una canción desesperada pablo neruda 978-8498387420"><div class="book-cover">VP</div><span class="genre-tag">Poesía</span><h4>Veinte poemas de amor…</h4><div class="meta">Pablo Neruda · 978-8498387420</div><div class="location">Ala D · Piso 1</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Fantasía" data-status="prestado" data-search="el reino de este mundo alejo carpentier 978-8420674398"><div class="book-cover">RM</div><span class="genre-tag">Fantasía</span><h4>El reino de este mundo</h4><div class="meta">Alejo Carpentier · 978-8420674398</div><div class="location">Ala C · Piso 3</div><div class="row-bottom"><span class="badge prest">Prestado</span></div></div>
+        <div class="card book-card" data-genre="Ensayo" data-status="disponible" data-search="el laberinto de la soledad octavio paz 978-9681602397"><div class="book-cover">LS</div><span class="genre-tag">Ensayo</span><h4>El laberinto de la soledad</h4><div class="meta">Octavio Paz · 978-9681602397</div><div class="location">Ala D · Piso 2</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+        <div class="card book-card" data-genre="Realismo mágico" data-status="disponible" data-search="la muerte de artemio cruz carlos fuentes 978-8420674404"><div class="book-cover">MC</div><span class="genre-tag">Realismo mágico</span><h4>La muerte de Artemio Cruz</h4><div class="meta">Carlos Fuentes · 978-8420674404</div><div class="location">Ala A · Piso 1</div><div class="row-bottom"><span class="badge disp">Disponible</span></div></div>
+      </div>
+      <p id="book-empty" style="display:none; text-align:center; color:rgba(18,33,43,0.5); font-size:13.5px; padding:30px 0;">No se encontraron libros con ese criterio.</p>
+    </section>
+
+    <!-- SCREEN 2: Registrar préstamo (sin cambios) -->
+    <section class="screen" id="screen-prestamo">
+      <div class="screen-head">
+        <div>
+          <span class="eyebrow">Proceso: Registrar préstamo</span>
+          <h2>Nuevo préstamo</h2>
+          <p>Sigue la validación del diagrama de flujo: el sistema confirma que el lector esté activo antes de habilitar el registro.</p>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card form-card">
+          <div class="field"><label>Lector</label><input value="María Fernández — Cédula 001-2345678-9"></div>
+          <div class="field"><label>Libro</label><input value="Cien años de soledad — bookID: 00184"></div>
+          <div class="field"><label>Bibliotecario</label><input value="Francis De La Rosa"></div>
+          <div class="grid2" style="gap:16px;">
+            <div class="field"><label>Fecha de retiro</label><input type="text" value="16/08/2026"></div>
+            <div class="field"><label>Fecha de entrega</label><input type="text" value="30/08/2026"></div>
+          </div>
+          <button class="btn">Registrar préstamo</button>
+        </div>
+        <div class="card status-card">
+          <h3>Validación del sistema</h3>
+          <div class="check-row"><span class="dot ok"></span> Lector activo — habilitado para préstamo</div>
+          <div class="check-row"><span class="dot ok"></span> Libro disponible</div>
+          <div class="check-row"><span class="dot ok"></span> Estado_de_la_entrega → <strong>En curso</strong></div>
+          <div class="check-row" style="border:none; padding-top:14px; color:rgba(18,33,43,0.5); font-size:12px;">
+            Corresponde al rombo "¿El lector está activo?" del diagrama de flujo.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: Devolución (ampliado) -->
+    <section class="screen" id="screen-devolucion">
+      <div class="screen-head">
+        <div>
+          <span class="eyebrow">Proceso: Devolución</span>
+          <h2>Préstamos activos</h2>
+          <p>Al devolver, el sistema compara la fecha actual con Fecha_de_entrega para fijar Entregado_a_tiempo.</p>
+        </div>
+      </div>
+
+      <div class="stat-strip">
+        <div class="card stat-pill"><div class="num">4</div><div class="lbl">Préstamos activos</div></div>
+        <div class="card stat-pill"><div class="num">2</div><div class="lbl">Atrasados hoy</div></div>
+        <div class="card stat-pill"><div class="num">1</div><div class="lbl">Vencen esta semana</div></div>
+      </div>
+
+      <div class="chip-group" id="loan-filters" style="margin-bottom:14px;">
+        <button class="chip active" data-filter="all">Todos</button>
+        <button class="chip" data-filter="ontime">A tiempo</button>
+        <button class="chip" data-filter="late">Atrasados</button>
+      </div>
+
+      <div class="card">
+        <table class="loan-table" id="loan-table">
+          <thead><tr><th>Libro / Préstamo</th><th>Lector</th><th>Bibliotecario</th><th>Vencimiento</th><th></th></tr></thead>
+          <tbody>
+            <tr data-status="ontime">
+              <td><div class="loan-title">La casa de los espíritus</div><div class="loan-sub">PrestamoID 00231</div></td>
+              <td>Carlos Peña</td><td>Francis De La Rosa</td>
+              <td class="due ontime">22/08/2026</td>
+              <td><button class="btn-outline">Marcar devuelto</button></td>
+            </tr>
+            <tr data-status="late">
+              <td><div class="loan-title">Como agua para chocolate</div><div class="loan-sub">PrestamoID 00229</div></td>
+              <td>Ana Gómez</td><td>Keithy Rach</td>
+              <td class="due late">Venció 10/08/2026</td>
+              <td><button class="btn-outline">Marcar devuelto</button></td>
+            </tr>
+            <tr data-status="ontime">
+              <td><div class="loan-title">Conversación en la Catedral</div><div class="loan-sub">PrestamoID 00240</div></td>
+              <td>Sebastián Estrella</td><td>Francis De La Rosa</td>
+              <td class="due ontime">25/08/2026</td>
+              <td><button class="btn-outline">Marcar devuelto</button></td>
+            </tr>
+            <tr data-status="late">
+              <td><div class="loan-title">El reino de este mundo</div><div class="loan-sub">PrestamoID 00236</div></td>
+              <td>Rosa Jiménez</td><td>Keithy Rach</td>
+              <td class="due late">Venció 12/08/2026</td>
+              <td><button class="btn-outline">Marcar devuelto</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: Panel general (mejorado) -->
+    <section class="screen" id="screen-panel">
+      <div class="screen-head">
+        <div>
+          <span class="eyebrow">Resumen del sistema</span>
+          <h2>Panel general</h2>
+          <p>Indicadores clave del proceso de préstamo, a partir de los registros de la tabla Prestamo.</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="card kpi"><div class="num">4</div><div class="lbl">Préstamos activos</div><div class="trend up">↑ 1 vs. semana pasada</div></div>
+        <div class="card kpi accent"><div class="num">2</div><div class="lbl">Préstamos atrasados</div><div class="trend down">↓ 1 respecto a ayer</div></div>
+        <div class="card kpi"><div class="num">27</div><div class="lbl">Devueltos este mes</div><div class="trend up">↑ 5 vs. mes anterior</div></div>
+        <div class="card kpi"><div class="num">88%</div><div class="lbl">Entregados a tiempo</div><div class="trend up">↑ 3 pts</div></div>
+      </div>
+
+      <div class="panel-grid">
+        <div class="card bars">
+          <h3>Libros más prestados</h3>
+          <div class="bar-row"><span>Cien años de soledad</span><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div><span>44</span></div>
+          <div class="bar-row"><span>Pedro Páramo</span><div class="bar-track"><div class="bar-fill" style="width:64%"></div></div><span>32</span></div>
+          <div class="bar-row"><span>La casa de los espíritus</span><div class="bar-track"><div class="bar-fill" style="width:52%"></div></div><span>26</span></div>
+          <div class="bar-row"><span>El otoño del patriarca</span><div class="bar-track"><div class="bar-fill" style="width:30%"></div></div><span>15</span></div>
+          <div class="bar-row"><span>Como agua para chocolate</span><div class="bar-track"><div class="bar-fill" style="width:22%"></div></div><span>11</span></div>
+        </div>
+
+        <div class="card donut-card">
+          <h3 style="align-self:flex-start;">Estado de entregas</h3>
+          <div class="donut"><div class="donut-label">88%</div></div>
+          <div class="legend">
+            <div class="legend-row"><span class="legend-dot" style="background:var(--ok);"></span> A tiempo — 82%</div>
+            <div class="legend-row"><span class="legend-dot" style="background:var(--red);"></span> Atrasados — 12%</div>
+            <div class="legend-row"><span class="legend-dot" style="background:var(--paper-deep);"></span> En curso — 6%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-grid-2">
+        <div class="card trend-card">
+          <h3>Préstamos registrados por semana</h3>
+          <div class="trend-sub">Últimas 6 semanas · tendencia al alza</div>
+          <svg class="trend-svg" viewBox="0 0 560 130" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#00707d" stop-opacity="0.28"/>
+                <stop offset="100%" stop-color="#00707d" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <polyline points="0,20 20,20 20,110 92,110 92,86 172,86 172,92 252,92 252,60 332,60 332,52 412,52 412,30 492,30 492,18 560,18 560,110 0,110" fill="url(#trendFill)" stroke="none"/>
+            <polyline points="20,110 92,86 172,92 252,60 332,52 412,30 492,18" fill="none" stroke="#00707d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="20" cy="110" r="3.5" fill="#00707d"/>
+            <circle cx="92" cy="86" r="3.5" fill="#00707d"/>
+            <circle cx="172" cy="92" r="3.5" fill="#00707d"/>
+            <circle cx="252" cy="60" r="3.5" fill="#00707d"/>
+            <circle cx="332" cy="52" r="3.5" fill="#00707d"/>
+            <circle cx="412" cy="30" r="3.5" fill="#00707d"/>
+            <circle cx="492" cy="18" r="4.5" fill="#c0392b"/>
+          </svg>
+          <div style="display:flex; justify-content:space-between; font-size:10.5px; color:rgba(18,33,43,0.5); font-family:'JetBrains Mono',monospace; padding:0 6px;">
+            <span>Sem 1</span><span>Sem 2</span><span>Sem 3</span><span>Sem 4</span><span>Sem 5</span><span>Sem 6</span>
+          </div>
+        </div>
+
+        <div class="card cols-card">
+          <h3>Préstamos por género</h3>
+          <div class="cols-wrap">
+            <div class="col-item"><div class="col-bar" style="height:88%;"><span class="col-val">44</span></div><div class="col-lbl">Realismo mágico</div></div>
+            <div class="col-item"><div class="col-bar" style="height:62%;"><span class="col-val">31</span></div><div class="col-lbl">Ficción</div></div>
+            <div class="col-item"><div class="col-bar" style="height:50%;"><span class="col-val">25</span></div><div class="col-lbl">Histórica</div></div>
+            <div class="col-item"><div class="col-bar" style="height:34%;"><span class="col-val">17</span></div><div class="col-lbl">Política</div></div>
+            <div class="col-item"><div class="col-bar" style="height:20%;"><span class="col-val">10</span></div><div class="col-lbl">Poesía</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // ---- Navegación entre pantallas ----
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
+    });
+  });
+
+  // ---- Catálogo: búsqueda + filtros por chip ----
+  const bookGrid = document.getElementById('book-grid');
+  const bookEmpty = document.getElementById('book-empty');
+  const bookSearch = document.getElementById('book-search');
+  const bookFilters = document.getElementById('book-filters');
+  let activeBookFilter = 'all';
+
+  function applyBookFilters(){
+    const term = bookSearch.value.trim().toLowerCase();
+    let visibleCount = 0;
+    bookGrid.querySelectorAll('.book-card').forEach(card=>{
+      const matchesSearch = !term || card.dataset.search.includes(term);
+      let matchesFilter = true;
+      if(activeBookFilter.startsWith('status:')){
+        matchesFilter = card.dataset.status === activeBookFilter.split(':')[1];
+      } else if(activeBookFilter.startsWith('genre:')){
+        matchesFilter = card.dataset.genre === activeBookFilter.split(':')[1];
+      }
+      const show = matchesSearch && matchesFilter;
+      card.style.display = show ? '' : 'none';
+      if(show) visibleCount++;
+    });
+    bookEmpty.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  bookSearch.addEventListener('input', applyBookFilters);
+  bookFilters.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      bookFilters.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      activeBookFilter = chip.dataset.filter;
+      applyBookFilters();
+    });
+  });
+
+  // ---- Devoluciones: filtro por chip + marcar devuelto ----
+  const loanTable = document.getElementById('loan-table');
+  const loanFilters = document.getElementById('loan-filters');
+  let activeLoanFilter = 'all';
+
+  function applyLoanFilter(){
+    loanTable.querySelectorAll('tbody tr').forEach(row=>{
+      const show = activeLoanFilter === 'all' || row.dataset.status === activeLoanFilter;
+      row.style.display = show ? '' : 'none';
+    });
+  }
+
+  loanFilters.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      loanFilters.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      activeLoanFilter = chip.dataset.filter;
+      applyLoanFilter();
+    });
+  });
+
+  loanTable.querySelectorAll('.btn-outline').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = btn.closest('tr');
+      const dueCell = row.querySelector('.due');
+      dueCell.textContent = 'Devuelto';
+      dueCell.classList.remove('late','ontime');
+      row.style.opacity = '0.5';
+      btn.textContent = 'Devuelto ✓';
+      btn.style.pointerEvents = 'none';
+    });
+  });
+</script>
+
+</body>
+</html>
